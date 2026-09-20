@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 mod kdf;
 mod cipher;
+mod format;
 
 #[derive(Parser)]
 #[command(name = "file-encryptor")]
@@ -53,6 +54,15 @@ fn main() {
         Ok(_) => println!("BUG: tampered ciphertext decrypted successfully!"),
         Err(_) => println!("correct: tampered ciphertext failed to decrypt"),
     }
+
+    // --- Step 4: pack/unpack round-trip test ---
+let packed = format::pack(&salt, &nonce, &ciphertext);
+println!("packed file size: {} bytes", packed.len());
+
+let (unpacked_salt, unpacked_nonce, unpacked_ciphertext) = format::unpack(&packed).unwrap();
+println!("salt round-trips: {}", unpacked_salt == salt);
+println!("nonce round-trips: {}", unpacked_nonce == nonce);
+println!("ciphertext round-trips: {}", unpacked_ciphertext == ciphertext.as_slice());
 
     match cli.command {
         Commands::Encrypt { input, output } => {
