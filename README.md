@@ -116,5 +116,5 @@ the password. It does **not** protect against:
 - [x] Full file read/write wiring
 - [x] Structured `Result`-based error handling — no panics on bad input
 
-hashnode
-https://quietbytes.hashnode.dev/file-encryptor-rust-authenticated-encryption
+📝 Full write-up of the design decisions and bugs hit while building this:
+[What Building a File Encryptor in Rust Taught Me About Authenticated Encryption](your-hashnode-url-here)
