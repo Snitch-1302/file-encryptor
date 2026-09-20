@@ -22,3 +22,43 @@ pub fn derive_key(password: &[u8], salt: &[u8; SALT_LEN]) -> Result<[u8; KEY_LEN
     argon2.hash_password_into(password, salt, &mut key)?;
     Ok(key)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn same_password_and_salt_produce_same_key() {
+        let salt = generate_salt();
+        let key1 = derive_key(b"correct horse battery staple", &salt).expect("derivation should succeed");
+        let key2 = derive_key(b"correct horse battery staple", &salt).expect("derivation should succeed");
+
+        assert_eq!(key1, key2);
+    }
+
+    #[test]
+    fn different_passwords_produce_different_keys() {
+        let salt = generate_salt();
+        let key1 = derive_key(b"password one", &salt).expect("derivation should succeed");
+        let key2 = derive_key(b"password two", &salt).expect("derivation should succeed");
+
+        assert_ne!(key1, key2);
+    }
+
+    #[test]
+    fn same_password_different_salts_produce_different_keys() {
+        let salt1 = generate_salt();
+        let salt2 = generate_salt();
+        let key1 = derive_key(b"same password", &salt1).expect("derivation should succeed");
+        let key2 = derive_key(b"same password", &salt2).expect("derivation should succeed");
+
+        assert_ne!(key1, key2);
+    }
+
+    #[test]
+    fn two_salts_are_different() {
+        let s1 = generate_salt();
+        let s2 = generate_salt();
+        assert_ne!(s1, s2);
+    }
+}
