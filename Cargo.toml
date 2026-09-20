@@ -1,0 +1,10 @@
+[package]
+name = "file-encryptor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.20", features = ["derive"] }
+argon2 = "0.5"
+rand = "0.8"
+aes-gcm = "0.10"
