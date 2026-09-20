@@ -4,10 +4,6 @@ A memory-safe file encryptor written in Rust. Derives a 256-bit key from a
 password using Argon2id, encrypts with AES-256-GCM, and stores everything
 needed to decrypt (salt + nonce + ciphertext) in one self-contained file.
 
-🚧 Work in progress — core cryptography (key derivation, encryption,
-file format) is implemented and tested; CLI wiring for full encrypt/decrypt
-file I/O and error handling is in progress.
-
 ## Why this exists
 
 Cryptographic code is exactly where memory bugs (buffer overflows,
@@ -23,29 +19,28 @@ exercise.
 - [`aes-gcm`](https://crates.io/crates/aes-gcm) — AES-256-GCM authenticated encryption
 - [`rand`](https://crates.io/crates/rand) — CSPRNG for salt/nonce generation
 - [`clap`](https://crates.io/crates/clap) — CLI argument parsing
+- [`rpassword`](https://crates.io/crates/rpassword) — hidden password prompt (no shell-history/process-list leakage)
 
 ## How it works
 
-1. User provides a password and a file path.
-2. A random 16-byte salt is generated.
-3. Argon2id derives a 256-bit key from the password + salt
-   (memory=19 MiB, iterations=2, parallelism=1 — OWASP baseline).
-4. A random 12-byte nonce is generated.
-5. AES-256-GCM encrypts the file contents using the derived key and nonce,
-   producing ciphertext with a 16-byte authentication tag appended.
-6. `salt || nonce || ciphertext+tag` are concatenated into a single output
-   file — no separate metadata file needed.
-
-Decryption reverses this: read the file, split out salt/nonce/ciphertext,
-re-derive the key from the (now-known) salt and the user's password, and
-decrypt. AES-GCM's authentication tag ensures that a wrong password or a
-tampered file fails decryption cleanly, rather than producing corrupted
-plaintext silently.
+1. User provides a file path and a mode (encrypt/decrypt); the password is
+   entered interactively and hidden — never passed as a CLI argument.
+2. **Encrypt:** a random 16-byte salt and 12-byte nonce are generated.
+   Argon2id derives a 256-bit key from the password + salt (memory=19 MiB,
+   iterations=2, parallelism=1 — OWASP baseline). AES-256-GCM encrypts the
+   file, producing ciphertext with a 16-byte authentication tag appended.
+   `salt || nonce || ciphertext+tag` are concatenated into one output file.
+3. **Decrypt:** the file is split back into salt, nonce, and ciphertext.
+   The password (re-entered) plus the stored salt re-derive the same key.
+   AES-256-GCM decrypts and verifies the auth tag. A wrong password or a
+   tampered file fails cleanly with a readable error and a non-zero exit
+   code — never a crash, and never silently corrupted output.
 
 ## Development setup
 
 Requires **Rust 1.85 or newer** (dependencies use edition 2024 manifests).
 Check your version:
+
 rustc --version
 
 
@@ -73,8 +68,43 @@ file-encryptor encrypt --input <path> --output <path>
 file-encryptor decrypt --input <path> --output <path>
 
 
-*(Full usage instructions will be finalized once file I/O and interactive
-password prompting are complete.)*
+You'll be prompted for a password interactively (input is hidden).
+
+**Example:**
+
+$ file-encryptor encrypt --input secret.txt --output secret.enc
+Enter password:
+Encrypted "secret.txt" -> "secret.enc"
+
+$ file-encryptor decrypt --input secret.enc --output secret_out.txt
+Enter password:
+Decrypted "secret.enc" -> "secret_out.txt"
+
+
+A wrong password produces:
+
+Error: decryption failed: incorrect password or corrupted/tampered file
+
+with exit code 1 — no partial or corrupted output file is written.
+
+## Output file format
+
+[ salt (16 bytes) | nonce (12 bytes) | ciphertext + auth tag (rest) ]
+
+
+Self-contained by design: the salt and nonce aren't secret (their value is
+uniqueness, not secrecy), so storing them alongside the ciphertext costs
+nothing in security while removing the risk of losing a separate
+metadata file.
+
+## Threat model & limitations
+
+This is a learning project, not an audited production tool. It protects
+file contents at rest against someone who obtains the `.enc` file without
+the password. It does **not** protect against:
+- A compromised machine (keyloggers, memory scrapers) while you type the password
+- Weak/reused passwords — the tool cannot force good password hygiene
+- Metadata leakage (filename, size, timestamps of the original file)
 
 ## Project status
 
@@ -82,10 +112,7 @@ password prompting are complete.)*
 - [x] Argon2id key derivation
 - [x] AES-256-GCM encryption/decryption (round-trip + tamper tested)
 - [x] Self-contained output file format (salt + nonce + ciphertext)
-- [ ] Full file read/write wiring
-- [ ] Proper `Result`-based error handling (no panics)
-- [ ] Interactive password prompt (no password via CLI arg)
+- [x] Secure interactive password prompt
+- [x] Full file read/write wiring
+- [x] Structured `Result`-based error handling — no panics on bad input
 
-## License
-
-*(add your chosen license here)*

@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use std::fs;
+use std::fmt;
+
 mod kdf;
 mod cipher;
 mod format;
@@ -28,48 +31,99 @@ enum Commands {
     },
 }
 
+/// Unified error type for the whole application. Every fallible operation
+/// (file I/O, key derivation, encryption/decryption, file-format parsing)
+/// converts into this one type so `main` can handle them uniformly with `?`.
+#[derive(Debug)]
+enum AppError {
+    Io(std::io::Error),
+    Kdf(argon2::Error),
+    Cipher,       // deliberately no detail: wrong password vs. tampered file
+                  // must look identical to the user (see Display impl below)
+    Format(&'static str),
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AppError::Io(e) => write!(f, "file error: {e}"),
+            AppError::Kdf(e) => write!(f, "key derivation error: {e}"),
+            // Never distinguish "wrong password" from "corrupted/tampered file"
+            // in the message shown to the user — that distinction is itself
+            // information an attacker could use.
+            AppError::Cipher => write!(f, "decryption failed: incorrect password or corrupted/tampered file"),
+            AppError::Format(e) => write!(f, "invalid file format: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for AppError {}
+
+impl From<std::io::Error> for AppError {
+    fn from(e: std::io::Error) -> Self {
+        AppError::Io(e)
+    }
+}
+
+impl From<argon2::Error> for AppError {
+    fn from(e: argon2::Error) -> Self {
+        AppError::Kdf(e)
+    }
+}
+
+impl From<aes_gcm::Error> for AppError {
+    fn from(_e: aes_gcm::Error) -> Self {
+        AppError::Cipher
+    }
+}
+
+impl From<&'static str> for AppError {
+    fn from(e: &'static str) -> Self {
+        AppError::Format(e)
+    }
+}
+
+fn encrypt_file(input: &PathBuf, output: &PathBuf) -> Result<(), AppError> {
+    let password = rpassword::prompt_password("Enter password: ")?;
+    let plaintext = fs::read(input)?;
+
+    let salt = kdf::generate_salt();
+    let key = kdf::derive_key(password.as_bytes(), &salt)?;
+
+    let nonce = cipher::generate_nonce();
+    let ciphertext = cipher::encrypt(&key, &nonce, &plaintext)?;
+
+    let packed = format::pack(&salt, &nonce, &ciphertext);
+    fs::write(output, packed)?;
+
+    println!("Encrypted {:?} -> {:?}", input, output);
+    Ok(())
+}
+
+fn decrypt_file(input: &PathBuf, output: &PathBuf) -> Result<(), AppError> {
+    let password = rpassword::prompt_password("Enter password: ")?;
+    let data = fs::read(input)?;
+
+    let (salt, nonce, ciphertext) = format::unpack(&data)?;
+    let key = kdf::derive_key(password.as_bytes(), &salt)?;
+
+    let plaintext = cipher::decrypt(&key, &nonce, ciphertext)?;
+    fs::write(output, plaintext)?;
+
+    println!("Decrypted {:?} -> {:?}", input, output);
+    Ok(())
+}
+
 fn main() {
     let cli = Cli::parse();
 
-    let salt = kdf::generate_salt();
-    let key1 = kdf::derive_key(b"test-password", &salt).unwrap();
-    let key2 = kdf::derive_key(b"test-password", &salt).unwrap();
-    let key3 = kdf::derive_key(b"different-password", &salt).unwrap();
+    let result = match cli.command {
+        Commands::Encrypt { input, output } => encrypt_file(&input, &output),
+        Commands::Decrypt { input, output } => decrypt_file(&input, &output),
+    };
 
-    println!("key1 == key2 (same password, same salt): {}", key1 == key2);
-    println!("key1 == key3 (diff password, same salt): {}", key1 == key3);
-
-    // --- Step 3: AES-GCM round-trip + tamper test ---
-    let nonce = cipher::generate_nonce();
-    let plaintext = b"attack at dawn";
-    let ciphertext = cipher::encrypt(&key1, &nonce, plaintext).unwrap();
-    println!("ciphertext len: {} (plaintext was {})", ciphertext.len(), plaintext.len());
-
-    let decrypted = cipher::decrypt(&key1, &nonce, &ciphertext).unwrap();
-    println!("round-trip matches: {}", decrypted == plaintext);
-
-    let mut tampered = ciphertext.clone();
-    tampered[0] ^= 0xFF;
-    match cipher::decrypt(&key1, &nonce, &tampered) {
-        Ok(_) => println!("BUG: tampered ciphertext decrypted successfully!"),
-        Err(_) => println!("correct: tampered ciphertext failed to decrypt"),
-    }
-
-    // --- Step 4: pack/unpack round-trip test ---
-let packed = format::pack(&salt, &nonce, &ciphertext);
-println!("packed file size: {} bytes", packed.len());
-
-let (unpacked_salt, unpacked_nonce, unpacked_ciphertext) = format::unpack(&packed).unwrap();
-println!("salt round-trips: {}", unpacked_salt == salt);
-println!("nonce round-trips: {}", unpacked_nonce == nonce);
-println!("ciphertext round-trips: {}", unpacked_ciphertext == ciphertext.as_slice());
-
-    match cli.command {
-        Commands::Encrypt { input, output } => {
-            println!("Encrypt mode: {:?} -> {:?}", input, output);
-        }
-        Commands::Decrypt { input, output } => {
-            println!("Decrypt mode: {:?} -> {:?}", input, output);
-        }
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
 }
