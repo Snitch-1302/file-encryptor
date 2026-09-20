@@ -116,3 +116,5 @@ the password. It does **not** protect against:
 - [x] Full file read/write wiring
 - [x] Structured `Result`-based error handling — no panics on bad input
 
+hashnode
+https://quietbytes.hashnode.dev/file-encryptor-rust-authenticated-encryption
