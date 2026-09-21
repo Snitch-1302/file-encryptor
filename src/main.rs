@@ -84,7 +84,8 @@ impl From<&'static str> for AppError {
 }
 
 fn encrypt_file(input: &PathBuf, output: &PathBuf) -> Result<(), AppError> {
-    let password = rpassword::prompt_password("Enter password: ")?;
+    use zeroize::Zeroizing;
+    let password = Zeroizing::new(rpassword::prompt_password("Enter password: ")?);
     let plaintext = fs::read(input)?;
 
     let salt = kdf::generate_salt();

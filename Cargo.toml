@@ -9,3 +9,4 @@ argon2 = "0.5"
 rand = "0.8"
 aes-gcm = "0.10"
 rpassword = "7"
+zeroize = { version = "1", features = ["derive"] }

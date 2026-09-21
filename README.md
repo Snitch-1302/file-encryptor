@@ -4,6 +4,9 @@ A memory-safe file encryptor written in Rust. Derives a 256-bit key from a
 password using Argon2id, encrypts with AES-256-GCM, and stores everything
 needed to decrypt (salt + nonce + ciphertext) in one self-contained file.
 
+📝 Full write-up of the design decisions and bugs hit while building this:
+[What Building a File Encryptor in Rust Taught Me About Authenticated Encryption](your-hashnode-url-here)
+
 ## Why this exists
 
 Cryptographic code is exactly where memory bugs (buffer overflows,
@@ -20,6 +23,7 @@ exercise.
 - [`rand`](https://crates.io/crates/rand) — CSPRNG for salt/nonce generation
 - [`clap`](https://crates.io/crates/clap) — CLI argument parsing
 - [`rpassword`](https://crates.io/crates/rpassword) — hidden password prompt (no shell-history/process-list leakage)
+- [`zeroize`](https://crates.io/crates/zeroize) — guaranteed-not-optimized-away zeroing of passwords and keys in memory
 
 ## How it works
 
@@ -35,6 +39,9 @@ exercise.
    AES-256-GCM decrypts and verifies the auth tag. A wrong password or a
    tampered file fails cleanly with a readable error and a non-zero exit
    code — never a crash, and never silently corrupted output.
+4. The password and derived key are wrapped in `Zeroizing<T>`, so their
+   memory is explicitly overwritten with zeros the moment they go out of
+   scope — rather than left intact in freed memory until reused.
 
 ## Development setup
 
@@ -61,6 +68,15 @@ Updating rustup (not just re-running cargo) is the fix.
 
 cargo build
 
+
+## Testing
+
+cargo test
+
+
+11 unit tests cover key derivation determinism, encryption round-trips,
+wrong-key rejection, tamper detection, and file-format parsing (including
+truncated/malformed input).
 
 ## Usage
 
@@ -115,6 +131,8 @@ the password. It does **not** protect against:
 - [x] Secure interactive password prompt
 - [x] Full file read/write wiring
 - [x] Structured `Result`-based error handling — no panics on bad input
+- [x] Unit test suite (11 tests across kdf, cipher, format modules)
+- [x] Secrets (password, derived key) zeroized in memory on drop
 
 📝 Full write-up of the design decisions and bugs hit while building this:
 [What Building a File Encryptor in Rust Taught Me About Authenticated Encryption](your-hashnode-url-here)
