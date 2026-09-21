@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use std::fs;
 use std::fmt;
+use zeroize::Zeroizing;
 
 mod kdf;
 mod cipher;
@@ -84,7 +85,6 @@ impl From<&'static str> for AppError {
 }
 
 fn encrypt_file(input: &PathBuf, output: &PathBuf) -> Result<(), AppError> {
-    use zeroize::Zeroizing;
     let password = Zeroizing::new(rpassword::prompt_password("Enter password: ")?);
     let plaintext = fs::read(input)?;
 
@@ -102,7 +102,7 @@ fn encrypt_file(input: &PathBuf, output: &PathBuf) -> Result<(), AppError> {
 }
 
 fn decrypt_file(input: &PathBuf, output: &PathBuf) -> Result<(), AppError> {
-    let password = rpassword::prompt_password("Enter password: ")?;
+    let password = Zeroizing::new(rpassword::prompt_password("Enter password: ")?);
     let data = fs::read(input)?;
 
     let (salt, nonce, ciphertext) = format::unpack(&data)?;
