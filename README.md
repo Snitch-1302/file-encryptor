@@ -135,4 +135,4 @@ the password. It does **not** protect against:
 - [x] Secrets (password, derived key) zeroized in memory on drop
 
 📝 Full write-up of the design decisions and bugs hit while building this:
-[What Building a File Encryptor in Rust Taught Me About Authenticated Encryption](your-hashnode-url-here)
+[What Building a File Encryptor in Rust Taught Me About Authenticated Encryption]https://quietbytes.hashnode.dev/file-encryptor-rust-authenticated-encryption
