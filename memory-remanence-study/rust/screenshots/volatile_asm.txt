@@ -1,0 +1,75 @@
+.LCPI0_0:
+        .byte   0
+        .byte   1
+        .byte   2
+        .byte   3
+        .byte   4
+        .byte   5
+        .byte   6
+        .byte   7
+        .byte   8
+        .byte   9
+        .byte   10
+        .byte   11
+        .byte   12
+        .byte   13
+        .byte   14
+        .byte   15
+.LCPI0_1:
+        .byte   16
+        .byte   17
+        .byte   18
+        .byte   19
+        .byte   20
+        .byte   21
+        .byte   22
+        .byte   23
+        .byte   24
+        .byte   25
+        .byte   26
+        .byte   27
+        .byte   28
+        .byte   29
+        .byte   30
+        .byte   31
+derive_and_wipe_volatile:
+        movaps  xmm0, xmmword ptr [rip + .LCPI0_0]
+        movaps  xmmword ptr [rsp - 40], xmm0
+        movaps  xmm0, xmmword ptr [rip + .LCPI0_1]
+        movaps  xmmword ptr [rsp - 24], xmm0
+        lea     rax, [rsp - 40]
+        mov     qword ptr [rsp - 8], rax
+        lea     rax, [rsp - 8]
+        mov     byte ptr [rsp - 40], 0
+        mov     byte ptr [rsp - 39], 0
+        mov     byte ptr [rsp - 38], 0
+        mov     byte ptr [rsp - 37], 0
+        mov     byte ptr [rsp - 36], 0
+        mov     byte ptr [rsp - 35], 0
+        mov     byte ptr [rsp - 34], 0
+        mov     byte ptr [rsp - 33], 0
+        mov     byte ptr [rsp - 32], 0
+        mov     byte ptr [rsp - 31], 0
+        mov     byte ptr [rsp - 30], 0
+        mov     byte ptr [rsp - 29], 0
+        mov     byte ptr [rsp - 28], 0
+        mov     byte ptr [rsp - 27], 0
+        mov     byte ptr [rsp - 26], 0
+        mov     byte ptr [rsp - 25], 0
+        mov     byte ptr [rsp - 24], 0
+        mov     byte ptr [rsp - 23], 0
+        mov     byte ptr [rsp - 22], 0
+        mov     byte ptr [rsp - 21], 0
+        mov     byte ptr [rsp - 20], 0
+        mov     byte ptr [rsp - 19], 0
+        mov     byte ptr [rsp - 18], 0
+        mov     byte ptr [rsp - 17], 0
+        mov     byte ptr [rsp - 16], 0
+        mov     byte ptr [rsp - 15], 0
+        mov     byte ptr [rsp - 14], 0
+        mov     byte ptr [rsp - 13], 0
+        mov     byte ptr [rsp - 12], 0
+        mov     byte ptr [rsp - 11], 0
+        mov     byte ptr [rsp - 10], 0
+        mov     byte ptr [rsp - 9], 0
+        ret
