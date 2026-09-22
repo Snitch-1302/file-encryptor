@@ -4,8 +4,9 @@ A memory-safe file encryptor written in Rust. Derives a 256-bit key from a
 password using Argon2id, encrypts with AES-256-GCM, and stores everything
 needed to decrypt (salt + nonce + ciphertext) in one self-contained file.
 
-📝 Full write-up of the design decisions and bugs hit while building this:
-[What Building a File Encryptor in Rust Taught Me About Authenticated Encryption](your-hashnode-url-here)
+📝 This project has a two-part write-up:
+1. [What Building a File Encryptor in Rust Taught Me About Authenticated Encryption](https://quietbytes.hashnode.dev/file-encryptor-rust-authenticated-encryption)
+2. [Verifying Why `zeroize` Matters: Dead-Store Elimination and Memory Remanence in Rust](https://quietbytes.hashnode.dev/verifying-why-zeroize-matters-dead-store-elimination-and-memory-remanence-in-rust)
 
 ## Why this exists
 
@@ -122,6 +123,15 @@ the password. It does **not** protect against:
 - Weak/reused passwords — the tool cannot force good password hygiene
 - Metadata leakage (filename, size, timestamps of the original file)
 
+## Memory remanence verification study
+
+The `memory-remanence-study/` folder contains a hands-on verification of
+the `Zeroizing<T>` design choice above — compiling naive vs. volatile
+zeroing loops in both C and Rust, inspecting the actual generated
+assembly, and confirming which one survives compiler optimization.
+Written up in Part 2 of the series:
+[Verifying Why `zeroize` Matters: Dead-Store Elimination and Memory Remanence in Rust](https://quietbytes.hashnode.dev/verifying-why-zeroize-matters-dead-store-elimination-and-memory-remanence-in-rust).
+
 ## Project status
 
 - [x] CLI argument parsing
@@ -133,6 +143,3 @@ the password. It does **not** protect against:
 - [x] Structured `Result`-based error handling — no panics on bad input
 - [x] Unit test suite (11 tests across kdf, cipher, format modules)
 - [x] Secrets (password, derived key) zeroized in memory on drop
-
-📝 Full write-up of the design decisions and bugs hit while building this:
-[What Building a File Encryptor in Rust Taught Me About Authenticated Encryption](https://quietbytes.hashnode.dev/file-encryptor-rust-authenticated-encryption)
