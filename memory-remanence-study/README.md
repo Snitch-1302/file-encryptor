@@ -7,8 +7,7 @@ manual zeroing loop is insufficient, and what mechanism `zeroize` uses to
 solve it.
 
 Full writeup: [Verifying Why `zeroize` Matters: Dead-Store Elimination and
-Memory Remanence in Rust](link-once-published) (Part 2 of the
-"Building a Memory-Safe File Encryptor in Rust" series).
+Memory Remanence in Rust](https://quietbytes.hashnode.dev/verifying-why-zeroize-matters-dead-store-elimination-and-memory-remanence-in-rust) (Part 2 of the
 
 ## What's here
 
