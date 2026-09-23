@@ -3,3 +3,4 @@ Cargo.lock
 *.enc
 foo.txt
 foo_decrypted.txt
+*.o
